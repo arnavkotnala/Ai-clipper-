@@ -39,7 +39,7 @@ GROUP_SCALE = {"laughter": 0.45, "shouting": 0.45, "cheering": 0.5}
 
 
 def model_dir() -> Path:
-    return config.config_dir() / "models" / "ced-mini"
+    return config.models_dir() / "ced-mini"
 
 
 def model_ready() -> bool:

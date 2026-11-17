@@ -1,0 +1,8 @@
+{
+  "name": "rtx5060-laptop",
+  "description": "PC B: Intel Core i7 13th-gen HX + RTX 5060 Laptop 8 GB (Blackwell), 16 GB RAM. Same models and frame count as PC A so results are comparable. NOT yet verified on that machine: run scripts/check-hardware.ps1 there.",
+  "priority": 50,
+  "match": {"gpu_regex": "RTX 5060", "min_vram_gb": 7},
+  "settings": {"vlm_enabled": true, "vlm_model": "qwen3-vl:4b", "vlm_frames": 6},
+  "env": {"SHARKYCLIPS_GAME_WORKERS": "3"}
+}

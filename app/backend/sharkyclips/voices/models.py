@@ -49,7 +49,7 @@ _lock = threading.Lock()
 def model_dir() -> Path:
     from .. import config
 
-    return config.config_dir() / "models" / "voices"
+    return config.models_dir() / "voices"
 
 
 def path(name: str) -> Path:

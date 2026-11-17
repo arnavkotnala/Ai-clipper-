@@ -52,7 +52,7 @@ _model_lock = threading.Lock()
 def _model_path() -> Path:
     from . import config
 
-    return config.config_dir() / "models" / "yunet" / YUNET_NAME
+    return config.models_dir() / "yunet" / YUNET_NAME
 
 
 def ensure_face_model(download: bool = True) -> Path | None:

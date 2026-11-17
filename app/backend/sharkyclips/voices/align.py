@@ -50,7 +50,7 @@ _lock = threading.Lock()
 
 
 def model_dir() -> Path:
-    return config.config_dir() / "models" / "align"
+    return config.models_dir() / "align"
 
 
 def ready() -> bool:

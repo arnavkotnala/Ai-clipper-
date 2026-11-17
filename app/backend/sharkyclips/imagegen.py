@@ -89,7 +89,7 @@ ProgressFn = Callable[[str, float | None], None]
 
 
 def root() -> Path:
-    return config.config_dir() / "models" / "image" / MODEL_ID
+    return config.models_dir() / "image" / MODEL_ID
 
 
 def tools_dir() -> Path:

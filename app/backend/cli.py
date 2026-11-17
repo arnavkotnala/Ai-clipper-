@@ -54,6 +54,9 @@ def _log_without_console() -> None:
 
 _log_without_console()
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import aiclipper_env  # noqa: E402  (ai-clipper: all data inside the project folder; before any sharkyclips import)
+
+aiclipper_env.apply()
 os.environ.setdefault("HF_HUB_DISABLE_SYMLINKS_WARNING", "1")
 os.environ.setdefault("HF_HUB_VERBOSITY", "error")  # hide "unauthenticated requests" notice
 
@@ -114,6 +117,33 @@ def cmd_transcribe(args) -> int:
     return 0
 
 
+def cmd_verify(args) -> int:
+    """ai-clipper Stage C: check candidates with the local vision model."""
+    from rich.table import Table
+
+    from sharkyclips import verify
+    from sharkyclips.project import get_project
+
+    project = get_project(args.id)
+    res = verify.verify_project(project, model=args.model, frames=args.frames, limit=args.limit,
+                                force=args.force,
+                                on_progress=lambda i, n: console.print(f"  checking {i + 1}/{n} ...") if i < n else None)
+    out = res["result"]
+    by_id = {c["id"]: c for c in out["candidates"]}
+    t = Table(title=f"Vision check - {res['model']}, {res['frames']} frames/candidate")
+    for col in ("#", "time", "conf", "eng", "verdict", "event", "evidence"):
+        t.add_column(col, overflow="fold", max_width=70 if col == "evidence" else None)
+    for cid in out.get("order", []):
+        c = by_id[cid]
+        v = c.get("verification") or {}
+        t.add_row(str(c["rank"]), f"{fmt_time(c['start'])}-{fmt_time(c['end'])}", str(c.get("confidence")),
+                  str(c.get("engagement")), v.get("happened") or v.get("status", "-"), v.get("event", "-"),
+                  (v.get("evidence") or v.get("error") or "")[:200])
+    console.print(t)
+    console.print(f"checked {res['checked']}, errors {res['errors']}, {res['seconds']}s")
+    return 0 if res["errors"] == 0 else 1
+
+
 def cmd_highlights(args) -> int:
     from rich.table import Table
 
@@ -131,13 +161,17 @@ def cmd_highlights(args) -> int:
     t.add_column("time")
     t.add_column("len", justify="right")
     t.add_column("hype", justify="right")
+    t.add_column("conf", justify="right")
+    t.add_column("eng", justify="right")
+    t.add_column("category")
     t.add_column("reasons")
     t.add_column("text", overflow="fold", max_width=48)
     for c in cands:
         reasons = ", ".join(r["code"] + (f" {r['value']}" if r.get("value") else "")
                             for r in c["reasons"][:4])
         t.add_row(str(c["rank"]), f"{fmt_time(c['start'])}-{fmt_time(c['end'])}",
-                  f"{c['duration']:.0f}s", str(c["hype_score"]), reasons, c["text"][:120])
+                  f"{c['duration']:.0f}s", str(c["hype_score"]), str(c.get("confidence", "-")),
+                  str(c.get("engagement", "-")), c.get("category", "-"), reasons, c["text"][:120])
     console.print(t)
     skipped = [f"{k} ({v['reason']})" for k, v in res["signals"].items() if v["status"] != "ok"]
     if skipped:
@@ -908,6 +942,14 @@ def build_parser() -> argparse.ArgumentParser:
     h.add_argument("--top", type=int, help="max number of clips (default: ~1 per 4 minutes)")
     h.add_argument("--force", action="store_true", help="recompute cached signals")
     h.set_defaults(func=cmd_highlights)
+
+    v = sub.add_parser("verify", help="check highlight candidates with the local vision model (Stage C)")
+    v.add_argument("id", help="project id (a unique prefix is enough)")
+    v.add_argument("--model", help="Ollama vision model (default: config vlm_model)")
+    v.add_argument("--frames", type=int, help="frames per candidate, 4-8 (default: hardware profile)")
+    v.add_argument("--limit", type=int, help="check only the N best candidates")
+    v.add_argument("--force", action="store_true", help="check again even if already checked")
+    v.set_defaults(func=cmd_verify)
 
     c = sub.add_parser("cut", help="export quick preview MP4s of highlight candidates")
     c.add_argument("id", help="project id (a unique prefix is enough)")

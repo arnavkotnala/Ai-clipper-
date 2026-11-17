@@ -108,6 +108,10 @@ def run_highlights(project: Project, mode: str | None = None, top: int | None = 
         # Whole-video hype curve (1 value per second) for the UI timeline / later calibration.
         "curve": {"resolution_s": 1.0, "values": [round(float(v), 3) for v in hype.smoothed]},
     }
+    # ai-clipper: confidence / engagement / category / phases (the vision check refines them later).
+    from .. import scoring
+
+    scoring.apply(result, post_roll=preset.post_roll, clip_max=preset.clip_max)
     path = project.dir / "highlights.json"
     carried = carry_over_ai(path, result)
     _keep_manual_clips(project, path, result)

@@ -1,0 +1,8 @@
+{
+  "name": "nvidia-8gb",
+  "description": "Any other NVIDIA GPU with 7+ GB VRAM: same setup as the two laptops.",
+  "priority": 10,
+  "match": {"requires_nvidia": true, "min_vram_gb": 7},
+  "settings": {"vlm_enabled": true, "vlm_model": "qwen3-vl:4b", "vlm_frames": 6},
+  "env": {}
+}

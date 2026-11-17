@@ -35,7 +35,7 @@ MODES: dict[str, ModePreset] = {
         # (Delta Force, League of Legends); missing signals are re-normalized away. "game" is 0
         # most of the time and high at kills/objectives, so it lifts exactly those moments.
         weights={"loudness": 0.30, "laughter": 0.25, "keywords": 0.25, "speech": 0.20, "chat": 0.30,
-                 "game": 0.6},
+                 "game": 0.6, "motion": 0.20},  # ai-clipper: motion + scene change (any game)
         keyword_categories=("reaction",),
         clip_min=15, clip_ideal=38, clip_max=60,
         pre_roll=(6, 10), post_roll=3, min_gap=45, smooth_sigma=2.0,
@@ -66,6 +66,22 @@ MODES: dict[str, ModePreset] = {
 
 def get_mode(name: str) -> ModePreset:
     try:
-        return MODES[name]
+        preset = MODES[name]
     except KeyError:
         raise SharkyClipsError(f"Unknown mode '{name}'.", f"Use one of: {', '.join(MODES)}") from None
+    return with_user_weights(preset)
+
+
+def with_user_weights(preset: ModePreset) -> ModePreset:
+    """ai-clipper: config `signal_weights` = {"gaming": {"motion": 0.3, "laughter": 0}} overrides
+    the built-in weights per mode (0 switches a signal off). Unknown names / bad values are ignored."""
+    from dataclasses import replace
+
+    from .. import config
+
+    user = (config.get("signal_weights") or {}).get(preset.name) or {}
+    clean = {k: float(v) for k, v in user.items()
+             if k in preset.weights and isinstance(v, (int, float)) and 0 <= float(v) <= 5}
+    if not clean:
+        return preset
+    return replace(preset, weights={**preset.weights, **clean})

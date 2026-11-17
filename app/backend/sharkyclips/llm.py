@@ -33,7 +33,10 @@ BATCH_KEEP_ALIVE = "3m"  # while a batch runs; unloaded explicitly afterwards (a
 
 
 def base_url() -> str:
-    return str(config.get("ollama_url") or "http://127.0.0.1:11434").rstrip("/")
+    # ai-clipper: AICLIPPER_OLLAMA_URL selects the app's private Ollama server (own port, models in
+    # app/models/ollama), separate from any Ollama the user runs for other things.
+    return str(os.environ.get("AICLIPPER_OLLAMA_URL") or config.get("ollama_url")
+               or "http://127.0.0.1:11434").rstrip("/")
 
 
 def _http():
@@ -46,6 +49,9 @@ def _http():
 
 
 def ollama_exe() -> str | None:
+    explicit = os.environ.get("AICLIPPER_OLLAMA_EXE")
+    if explicit and Path(explicit).is_file():
+        return explicit
     found = shutil.which("ollama")
     if found:
         return found
@@ -99,8 +105,15 @@ def ensure_server(start_timeout: float = 30.0) -> str:
     # the governor's priority and is stopped together with SharkyClips (no orphans).
     # Hidden console, NOT detached: ollama starts llama-server / gpu-discover all the time, and
     # those inherit this console; a detached ollama makes each of them open a new window.
+    env = dict(os.environ)
+    if _is_local_server():
+        # Bind the server we start to the port base_url() talks to (the private ai-clipper port).
+        from urllib.parse import urlparse
+
+        u = urlparse(base_url())
+        env["OLLAMA_HOST"] = f"{u.hostname}:{u.port or 11434}"
     subprocess.Popen([exe, "serve"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                     stdin=subprocess.DEVNULL, **no_window())
+                     stdin=subprocess.DEVNULL, env=env, **no_window())
     t0 = time.time()
     while time.time() - t0 < start_timeout:
         time.sleep(0.5)

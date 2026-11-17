@@ -1,0 +1,8 @@
+{
+  "name": "rtx5050-laptop",
+  "description": "PC A: Ryzen 7 (8C/16T) + RTX 5050 Laptop 8 GB (Blackwell, sm_120), 24 GB RAM. Verified 2026-11-17: CTranslate2 4.9 float16/int8_float16 on CUDA, h264_nvenc, NVDEC.",
+  "priority": 50,
+  "match": {"gpu_regex": "RTX 5050", "min_vram_gb": 7},
+  "settings": {"vlm_enabled": true, "vlm_model": "qwen3-vl:4b", "vlm_frames": 6},
+  "env": {"SHARKYCLIPS_GAME_WORKERS": "3"}
+}

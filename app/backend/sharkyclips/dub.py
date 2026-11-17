@@ -211,7 +211,7 @@ def require_ready(lang: str) -> None:
 
 
 def model_dir() -> Path:
-    return config.config_dir() / "models" / "tts" / "pocket-int8"
+    return config.models_dir() / "tts" / "pocket-int8"
 
 
 def model_ready() -> bool:

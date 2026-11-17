@@ -1,0 +1,8 @@
+{
+  "name": "cpu-only",
+  "description": "No usable NVIDIA GPU (or < 7 GB VRAM). Whisper falls back to a smaller CPU model automatically; the vision check is off by default because a 4B VLM on CPU takes minutes per candidate (it can still be switched on in Settings).",
+  "priority": 0,
+  "match": {},
+  "settings": {"vlm_enabled": false, "vlm_frames": 4},
+  "env": {"SHARKYCLIPS_GAME_WORKERS": "2"}
+}

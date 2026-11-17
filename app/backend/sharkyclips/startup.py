@@ -48,7 +48,10 @@ def apply_ollama_autostart(enabled: bool | None = None) -> bool | None:
     if d is None:
         return None
     if enabled is None:
-        enabled = bool(config.get("ollama_autostart"))
+        # ai-clipper: never edit the user's Startup folder on our own. The app runs a private
+        # Ollama server on its own port, so the user's Ollama autostart doesn't matter to it.
+        # Only an explicit choice in Settings (enabled=True/False) moves the shortcut.
+        return ollama_autostart_enabled()
     live, saved = d / LINK, backup_dir() / LINK
     try:
         if not enabled and live.is_file():

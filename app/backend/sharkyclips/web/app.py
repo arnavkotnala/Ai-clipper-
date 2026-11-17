@@ -150,10 +150,51 @@ def submit_highlights(project_id: str, mode: str | None = None, force: bool = Fa
         review = state.load_review(get_project(project_id))
         if not review["facecam_checked"]:
             submit_facecam(project_id)
-        if llm_available() and config.get("auto_analyze") is not False:
+        if vlm_available():
+            submit_verify(project_id, chain=True)  # ai-clipper Stage C; it starts analyze afterwards
+        elif llm_available() and config.get("auto_analyze") is not False:
             submit_analyze(project_id)  # titles, viral score, ... (cached per clip)
 
     return jobs.submit("highlights", "gpu", project_id, {"mode": mode, "force": force}, run, then)
+
+
+def vlm_available() -> bool:
+    from .. import llm
+
+    return bool(config.get("vlm_enabled")) and (llm.ollama_exe() is not None
+                                                 or llm.server_version(0.3) is not None)
+
+
+def submit_verify(project_id: str, force: bool = False, chain: bool = False,
+                  limit: int | None = None) -> Job:
+    """ai-clipper Stage C: the local vision model checks each candidate's frames (verify.py)."""
+    def run(job: Job):
+        from .. import verify
+
+        jobs.update(job, stage="loading_vlm", progress=None)
+
+        def progress(i: int, n: int) -> None:
+            jobs.update(job, stage="vlm_checking", progress=(i / n) if n else None,
+                        detail={"index": i, "count": n})
+
+        res = verify.verify_project(get_project(project_id), force=force, on_progress=progress,
+                                    limit=limit or int(config.get("vlm_limit") or 0) or None)
+        return {k: v for k, v in res.items() if k != "result"}
+
+    def then(_job: Job):
+        if chain and llm_available() and config.get("auto_analyze") is not False:
+            submit_analyze(project_id)
+
+    return jobs.submit("verify", "gpu", project_id, {"force": force, "chain": chain, "limit": limit},
+                       run, then, key=f"verify:{project_id}", persist=True)
+
+
+@app.post("/api/projects/{project_id}/verify")
+def api_verify(project_id: str, body: dict | None = None):
+    _project(project_id)
+    body = body or {}
+    job = submit_verify(project_id, force=bool(body.get("force")), limit=body.get("limit"))
+    return {"job_id": job.id}
 
 
 def llm_available() -> bool:
@@ -798,6 +839,8 @@ def rebuild_job(saved: dict, attempt: int | None = None) -> Job | None:
         return submit_transcribe(pid, p.get("language") or "auto", bool(p.get("force")))
     if kind == "highlights":
         return submit_highlights(pid, p.get("mode"), bool(p.get("force")))
+    if kind == "verify":
+        return submit_verify(pid, bool(p.get("force")), bool(p.get("chain")), p.get("limit"))
     if kind == "analyze":
         return submit_analyze(pid, p.get("lang"), bool(p.get("force")), job_id=keep_id, attempt=attempt,
                               ranks=p.get("ranks") or None, meta_only=bool(p.get("meta_only")))

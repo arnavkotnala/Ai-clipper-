@@ -115,6 +115,13 @@ DEFAULTS: dict[str, Any] = {
     "force_cpu_reason": None,
     # Fingerprint of the last GPU setup that passed the smoke test.
     "gpu_verified": None,
+    # ai-clipper: Stage C vision check (verify.py), scoring weights (scoring.py, modes.py)
+    "vlm_enabled": True,
+    "vlm_model": "qwen3-vl:4b",
+    "vlm_frames": 6,  # 4..8 frames per candidate
+    "vlm_limit": 0,  # check at most this many candidates per video (0 = all)
+    "rank_weights": None,  # {"confidence": 0.4, "engagement": 0.6}
+    "signal_weights": {},  # {"gaming": {"motion": 0.2, ...}} overrides modes.py
 }
 
 
@@ -123,12 +130,23 @@ def config_dir() -> Path:
     return Path(override).expanduser() if override else Path.home() / ".sharkyclips"
 
 
+def models_dir() -> Path:
+    """Downloaded model files. ai-clipper: SHARKYCLIPS_MODELS keeps them in app/models."""
+    override = os.environ.get("SHARKYCLIPS_MODELS")
+    return Path(override).expanduser() if override else config_dir() / "models"
+
+
 def config_path() -> Path:
     return config_dir() / "config.json"
 
 
 def load() -> dict[str, Any]:
     cfg = dict(DEFAULTS)
+    # ai-clipper: the hardware profile (app/config/profiles) sits between the built-in defaults
+    # and the user's own settings; it is never written to config.json.
+    from . import hwprofile
+
+    cfg.update(hwprofile.settings())
     path = config_path()
     if path.is_file():
         try:
@@ -176,7 +194,9 @@ def update(**values: Any) -> dict[str, Any]:
 
 
 def workspace_dir() -> Path:
-    custom = get("workspace_dir")
+    # ai-clipper: SHARKYCLIPS_WORKSPACE (set by aiclipper_env) wins, so no absolute path is stored
+    # in config.json and the folder can be copied to another PC.
+    custom = os.environ.get("SHARKYCLIPS_WORKSPACE") or get("workspace_dir")
     path = Path(custom).expanduser() if custom else DEFAULT_WORKSPACE
     path.mkdir(parents=True, exist_ok=True)
     return path
