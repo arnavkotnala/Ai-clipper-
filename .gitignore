@@ -1,0 +1,19 @@
+# Upstream reference clones (pinned commits recorded in docs/PROVENANCE.md)
+/repo/
+# Portable toolchain (re-created by scripts/setup.ps1)
+/tools/
+/.venv/
+# Runtime data, never committed
+/data/
+/downloads/
+/exports/
+/logs/
+/app/models/*
+!/app/models/README.md
+/app/database/*
+!/app/database/README.md
+node_modules/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
