@@ -71,6 +71,19 @@ It needs Ollama installed (`%LOCALAPPDATA%\Programs\Ollama\ollama.exe`) and the 
 `app\models\ollama` (`setup.ps1 -Models`). The app starts its own Ollama on port 11435; your normal
 Ollama (port 11434) is not used.
 
+## Offline clipper (`scripts\clip.ps1`)
+
+**The report says "CONNECTIONS SEEN" / the script ends with a network warning.**
+The report lists which process connected where and in which stage. Known case: an Ollama server
+started *outside* ai-clipper (without `OLLAMA_NO_CLOUD=1`) and still listening on port 11435 gets
+reused and connects out. Close it (Task Manager → ollama) and run again.
+
+**"vision check skipped" in the report.**
+Ollama or the vision model is missing (`setup.ps1 -Models`), or use `-NoVision`.
+
+**The truth file is rejected.**
+One event per line: `mm:ss-mm:ss, category, note` (or `h:mm:ss`); `#` starts a comment.
+
 ## Publishing
 
 **There is no "Publish" / YouTube button.**

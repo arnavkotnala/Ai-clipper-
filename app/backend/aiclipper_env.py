@@ -53,6 +53,9 @@ def apply() -> dict[str, Path]:
         "OLLAMA_MODELS": p["models"] / "ollama",
         # Private Ollama server: own port, so the user's normal Ollama (11434) is never touched.
         "AICLIPPER_OLLAMA_URL": "http://127.0.0.1:11435",
+        # Measured 2026-11-18: without this, `ollama serve` (0.33.2) opens an HTTPS connection to
+        # a Google Cloud address (34.36.133.15:443) at startup; with it, none.
+        "OLLAMA_NO_CLOUD": "1",
         "AICLIPPER_OLLAMA_EXE": Path(os.environ.get("LOCALAPPDATA", "")) / "Programs" / "Ollama" / "ollama.exe",
     }
     for key, value in env.items():

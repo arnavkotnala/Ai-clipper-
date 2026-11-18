@@ -53,6 +53,7 @@ Modified for ai-clipper:
 | `app/backend/sharkyclips/scoring.py` | Separate confidence / engagement scores, categories, event phases (Stage D). |
 | `app/backend/sharkyclips/verify.py` | Stage C vision-model verification (Ollama, structured JSON). |
 | `app/backend/sharkyclips/hwprofile.py` + `app/config/profiles/*.json` | Hardware profiles (PC A RTX 5050, PC B RTX 5060, generic, CPU). |
+| `app/backend/sharkyclips/offline_clip.py` + `scripts/clip.ps1` | One-command offline clipper with per-stage measurements, network watch and baseline-vs-ai-clipper scoring against a truth file. |
 | `app/backend/sharkyclips/outbound.py` | Offline-first gate for uploads, posting and online updates. |
 | `app/frontend/src/components/LinkPreview.tsx` | Link preview before download (thumbnail, quality, duplicate). |
 | `scripts/bench_vlm.py` | Vision-model benchmark + sanity probes. |

@@ -9,6 +9,7 @@
     python cli.py chat <id> [--file chat.json] [--force]
     python cli.py analyze <id> [--lang tr|en|...] [--force] [--no-refine]
     python cli.py render <id> <rank...> | --accepted | --all [--layout ..] [--subs ..] [--hook flash]
+    python cli.py clip <video-file> [--top N] [--truth truth.txt]   (ai-clipper: offline, one command)
     python cli.py list
     python cli.py languages
     python cli.py serve [--lan] [--port 8000]
@@ -352,6 +353,19 @@ def cmd_render(args) -> int:
                   f"{r.seconds:.1f}s ({r.encoder})")
     console.print(t)
     return 0
+
+
+def cmd_clip(args) -> int:
+    """ai-clipper: the whole pipeline on a local video file, offline, with a measured report."""
+    from sharkyclips import offline_clip
+
+    r = offline_clip.run(args.video, top=args.top, truth_path=args.truth, baseline=not args.no_baseline,
+                         vision=not args.no_vision, subtitles=args.subs, layout=args.layout, mode=args.mode,
+                         log=lambda s: console.print(s, markup=False, highlight=False))
+    console.print()
+    console.print(offline_clip.to_markdown(r), markup=False, highlight=False)
+    console.print(f"Clips and report: {r['out_dir']}", markup=False, highlight=False)
+    return 0 if r["offline_ok"] else 2
 
 
 def cmd_list(args) -> int:
@@ -1007,6 +1021,17 @@ def build_parser() -> argparse.ArgumentParser:
                                        "server or starts one on a free port")
     la.add_argument("--tray", action="store_true", help="show a tray icon (automatic without a console)")
     la.set_defaults(func=cmd_launch)
+
+    cl = sub.add_parser("clip", help="ai-clipper: video file -> 9:16 clips + measured report, fully offline")
+    cl.add_argument("video", help="path to a local video file")
+    cl.add_argument("--top", type=int, help="max number of candidates (default: ~1 per 4 minutes)")
+    cl.add_argument("--truth", help="your list of real highlights (mm:ss-mm:ss, category, note) to score accuracy")
+    cl.add_argument("--no-baseline", action="store_true", help="skip the SharkyClips-baseline comparison run")
+    cl.add_argument("--no-vision", action="store_true", help="skip the vision check (Stage C)")
+    cl.add_argument("--subs", choices=["bold", "clean", "minimal", "none"], default="bold")
+    cl.add_argument("--layout", choices=["auto", "split", "fit", "crop"], default="auto")
+    cl.add_argument("--mode", choices=MODES, default="gaming")
+    cl.set_defaults(func=cmd_clip)
 
     sub.add_parser("list", help="list projects").set_defaults(func=cmd_list)
     sub.add_parser("languages", help="show supported languages").set_defaults(func=cmd_languages)

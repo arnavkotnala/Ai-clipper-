@@ -60,6 +60,10 @@ Found during benchmarking and fixed:
   check the opposite and passes, run on its own with `test_outbound_gate.py`; the full suite was
   not re-run after that one-test change. (The Phase 2b commit message says "the same 2" failures:
   that is wrong, this entry is the correct record.)
+- 2026-11-18 after the offline clipper: 734 passed, 1 skipped, 3 failed = the 2 known ones +
+  `test_no_window.py` (my nvidia-smi call lacked the hidden-window flag). Fixed; that test,
+  `test_offline_clip.py` (12) and `test_aiclipper_env.py` then passed (21 total); the full suite
+  was not re-run after this one-line fix.
 
 ## Link import (2026-11-18, PC A, home internet)
 
@@ -81,6 +85,54 @@ Found during benchmarking and fixed:
 | Found while testing | uv placed a `python3.12.exe` shim in `%USERPROFILE%\.local\bin` during the 2026-11-17 setup (outside ai-clipper). `setup.ps1` now passes `--no-bin`. |
 
 Not yet tested: `setup.ps1` on PC B, and `-Models` / `-Dev` / `-Offline` end to end.
+
+## Offline clipper on the synthetic demo (2026-11-18, PC A)
+
+Command: `scripts\clip.ps1 data\eval\neon-drift-demo.mp4 -Top 7 -Truth data\eval\neon-drift-demo.truth.txt`.
+Truth = the 7 scripted events of `app/docs/demo/make_demo.py` (explosion −2 s … +7 s), written from
+the generator script, not from results. **Synthetic video, 7 events: this shows the pipeline and the
+measurement work; it says little about accuracy on real gameplay.** 3 runs, identical detections.
+
+| Stage (run 3) | Time (s) | Peak VRAM (MiB, whole GPU) | Peak RAM (MiB, app + Ollama) | CPU avg/peak % |
+|---|---|---|---|---|
+| import | 0.1 | – | – | – |
+| transcribe (large-v3-turbo, CUDA float16) | 6.2 | 3901 | 1743 | 14 / 36 |
+| highlights, baseline | 1.0 | 1087 | 1018 | 23 / 28 |
+| highlights, ai-clipper | 2.9 | 1527 | 1581 | 34 / 54 |
+| vision check, 6 candidates (qwen3-vl:4b) | 54.5 | 6337 | 6240 | 19 / 47 |
+| facecam detection | 3.7 | 1098 | 1263 | 71 / 93 |
+| render 6 clips (NVENC, 1080×1920, subtitles) | 21.2 (2.5–2.9 s/clip) | 3250 | 1383 | 34 / 61 |
+| **total** | **90.1** for a 6:04 video | | | |
+
+Idle VRAM before the run: 998 MiB (other programs).
+
+| | Detections | Correct | False pos. | Missed | Precision | Recall | Mean timing error | Whole event inside clip |
+|---|---|---|---|---|---|---|---|---|
+| Baseline (SharkyClips ranking, no motion, no vision) | 7 | 6 | 1 | 1 | 0.86 | 0.86 | 1.9 s | 6/6 |
+| ai-clipper | 6 | 6 | 0 | 1 | 1.00 | 0.86 | 1.9 s | 6/6 |
+
+What explains the difference (checked in report.json):
+- The baseline's false positive (1:45–2:05) ends 1 s before the round-3 event (2:06–2:15): a
+  mistimed detection of that event. ai-clipper produced no candidate there. Both miss that event.
+- The vision check answered "yes" for all 6 ai-clipper candidates: on this video it filtered nothing.
+  The gain comes from candidate selection with the motion signal, not from the vision model.
+- Same run with `-NoVision`: 42.2 s total, identical detections and scores. On this video the
+  vision check costs ~50 s and changes nothing; whether it removes false positives must be
+  measured on real footage.
+- Event category (ai-clipper only): 3 of 6 right (clutch, 2× multi_kill); the boss escape,
+  the trick jump and the final 1v1 were all called "clutch".
+- Output: 6 MP4s, H.264 1080×1920 30 fps + AAC, 24–29 s each (all within 20–60 s).
+- Facecam: none found (correct: the demo's "facecam" is a logo, not a face).
+
+Offline check (network connections of the app, its children and any `ollama` process, sampled
+every 0.5 s):
+- Run 1: **failed**: `ollama.exe` connected to 34.36.133.15:443 (Google Cloud). A separate test
+  showed `ollama serve` 0.33.2 makes that connection at startup; with `OLLAMA_NO_CLOUD=1` it makes
+  none and still answers. Fixed in `aiclipper_env.py` and `llm.ensure_server`.
+- Runs 2 and 3: no connection to any non-local address. (This watches connections; it is not the
+  same as running with the network cable unplugged.)
+- Run 1 also left the private Ollama server running after the command ended; `clip` now stops
+  the server it started.
 
 ## Pending: real recording validation (brief §15)
 

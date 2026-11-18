@@ -39,6 +39,8 @@ ai-clipper/
 powershell -ExecutionPolicy Bypass -File scripts\setup.ps1            # add -Models to fetch the AI models
 # every time
 powershell -ExecutionPolicy Bypass -File scripts\run.ps1              # http://127.0.0.1:8100
+# offline clipper: one video file -> 9:16 clips + report in exports\<project-id>\
+powershell -ExecutionPolicy Bypass -File scripts\clip.ps1 "D:\videos\match.mp4"   # -Truth my-list.txt to score accuracy
 # what was detected on this PC (use it on PC B)
 powershell -ExecutionPolicy Bypass -File scripts\check-hardware.ps1
 ```
@@ -65,6 +67,7 @@ Problems: see [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
 | Offline-first | Uploads, posting and online updates are blocked in code (`outbound.py`) and hidden in the UI |
 | Hardware profiles | PC A (RTX 5050) verified; PC B (RTX 5060) profile written, **not yet verified on that PC** |
 | UI | SharkyClips' UI, English by default. The new scores and vision verdicts are **not shown yet** |
+| Offline clipper | `scripts\clip.ps1`: tested on the synthetic demo (6:04 video → 6 clips in 90 s, no network connections) |
 | Real-recording accuracy | **Not measured yet** (needs a real recording + your own list of highlights) |
 
 Measured numbers are in [docs/RESULTS.md](docs/RESULTS.md); nothing is claimed there that was not measured.

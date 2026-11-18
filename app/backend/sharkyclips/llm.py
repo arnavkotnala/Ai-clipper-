@@ -112,6 +112,7 @@ def ensure_server(start_timeout: float = 30.0) -> str:
 
         u = urlparse(base_url())
         env["OLLAMA_HOST"] = f"{u.hostname}:{u.port or 11434}"
+        env["OLLAMA_NO_CLOUD"] = "1"  # ai-clipper: offline-first (else it connects out at startup)
     subprocess.Popen([exe, "serve"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                      stdin=subprocess.DEVNULL, env=env, **no_window())
     t0 = time.time()
