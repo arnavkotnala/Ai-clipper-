@@ -1,0 +1,20 @@
+{
+  "_comment": "Pinned toolchain for scripts/setup.ps1. Checked on PC A on 2026-11-18.",
+  "python": "3.12.16",
+  "uv": {
+    "version": "0.13.8",
+    "url": "https://github.com/astral-sh/uv/releases/download/0.13.8/uv-x86_64-pc-windows-msvc.zip",
+    "sha256": "529e78a9cec6cd7e3e014f7ecd8bda0c113969d4ed0f2efeedb85c30943325b8"
+  },
+  "ffmpeg": {
+    "_comment": "FFmpeg-Builds deletes dated releases after a few weeks. setup.ps1 order: existing tools/ffmpeg, then tools/_dl/ffmpeg.zip if its sha256 is listed in cached_sha256, then the pinned URL, then the current n8.1 build verified against GitHub's published digest.",
+    "version_prefix": "n8.1",
+    "url": "https://github.com/FFmpeg-Builds/FFmpeg-Builds/releases/download/autobuild-2026-11-17-12-40/ffmpeg-n8.1.3-35-gf1acb0a266-win64-gpl-8.1.zip",
+    "sha256": "5e50099d2ad086f193889452e98bce6f5ece36e852b2390769707c3afa39659b",
+    "cached_sha256": ["173bc0e821da848050823fbb045fb639cec121eb062b153f0daebc545a808c4d", "5e50099d2ad086f193889452e98bce6f5ece36e852b2390769707c3afa39659b"],
+    "latest_api": "https://api.github.com/repos/FFmpeg-Builds/FFmpeg-Builds/releases/latest",
+    "latest_asset": "ffmpeg-n8.1-latest-win64-gpl-8.1.zip"
+  },
+  "ollama_model": "qwen3-vl:4b",
+  "whisper_model": "large-v3-turbo"
+}

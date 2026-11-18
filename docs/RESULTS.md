@@ -53,6 +53,34 @@ Found during benchmarking and fixed:
   tests (`test_web.py::test_projects_empty`, `test_pubqueue_status.py::test_browser_posts_land_in_the_library_and_the_digest`),
   which also fail identically on the pristine code; both pass when run alone.
 - ai-clipper tests (motion, scoring, verify, profiles, data-root isolation): 33 passed.
+- 2026-11-18 after Phase 2a (link preview): 714 passed, 1 skipped, the same 2 known failures.
+- 2026-11-18 after Phase 2b (publishing gate): 722 passed, 1 skipped, 3 failed = the 2 known ones +
+  `test_client_upload.py::test_shipped_built_in_client_is_a_valid_desktop_client`, which checks
+  that the upstream OAuth client ships (it was removed on purpose). That test was rewritten to
+  check the opposite and passes, run on its own with `test_outbound_gate.py`; the full suite was
+  not re-run after that one-test change. (The Phase 2b commit message says "the same 2" failures:
+  that is wrong, this entry is the correct record.)
+
+## Link import (2026-11-18, PC A, home internet)
+
+| Check | Result |
+|---|---|
+| Preview (`/api/probe`) of a public YouTube video ("Me at the zoo", 0:19) | 3.4–3.9 s; title, channel, thumbnail, qualities (240p only) correct |
+| Preview of a 10:35 video (Big Buck Bunny 60fps 4K) | 7 qualities listed, 360p ≈ 91 MB … 1080p60 ≈ 591 MB (estimates from yt-dlp metadata, not measured downloads) |
+| Import of the 0:19 video at 240p | 11 s from request to audio extracted; transcription etc. started on their own |
+| Duplicate check | Same video via `youtu.be/...` short link → "already a project" |
+| Cancel during download (10:35 video, 360p) | Stopped at 1.2%; partial files and the project folder removed |
+
+## Setup scripts (2026-11-18, PC A)
+
+| Check | Result |
+|---|---|
+| `scripts\check-hardware.ps1` | Profile `rtx5050-laptop`; NVENC 10 s of 1080×1920 in 0.88 s; Whisper sees 1 CUDA device (float16, int8_float16, bfloat16 …) |
+| `scripts\setup.ps1` on the existing install | All 5 steps OK, nothing re-downloaded |
+| `scripts\setup.ps1` on a fresh clone (package cache + FFmpeg zip linked, Python downloaded) | First try **failed**: Python download timed out 3× (uv's 30 s default). After raising the timeout: OK in 217 s (Python download alone 3 min 21 s) |
+| Found while testing | uv placed a `python3.12.exe` shim in `%USERPROFILE%\.local\bin` during the 2026-11-17 setup (outside ai-clipper). `setup.ps1` now passes `--no-bin`. |
+
+Not yet tested: `setup.ps1` on PC B, and `-Models` / `-Dev` / `-Offline` end to end.
 
 ## Pending: real recording validation (brief §15)
 

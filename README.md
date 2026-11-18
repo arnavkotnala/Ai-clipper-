@@ -32,19 +32,42 @@ ai-clipper/
   Windows 11 PC. Virtual environments, `node_modules` and GPU-specific packages are
   rebuilt there by the setup script; they are not meant to be copied.
 
-## Setup status (2026-11-17)
+## Install and run (Windows 11)
 
-Done: folder skeleton created, both repositories cloned.
+```powershell
+# once per PC (after copying the ai-clipper folder or cloning the repo)
+powershell -ExecutionPolicy Bypass -File scripts\setup.ps1            # add -Models to fetch the AI models
+# every time
+powershell -ExecutionPolicy Bypass -File scripts\run.ps1              # http://127.0.0.1:8100
+# what was detected on this PC (use it on PC B)
+powershell -ExecutionPolicy Bypass -File scripts\check-hardware.ps1
+```
 
-Machine checked at setup:
+`setup.ps1` writes only inside this folder and needs no admin rights: uv and Python 3.12
+(`tools\`), the Python environment (`.venv`, pinned by `app\backend\requirements.lock.txt`),
+FFmpeg with NVENC (`tools\ffmpeg`, sha256-checked; versions in `scripts\toolchain.lock.json`).
+The vision check needs [Ollama](https://ollama.com) installed; the app runs its own private
+Ollama server on port 11435 with the models in `app\models\ollama`.
 
-| Item | Found | Note |
-|---|---|---|
-| Python | 3.14.7 only | SharkyClips supports **3.11–3.13**. ML wheels (faster-whisper/CTranslate2, onnxruntime, torch) often lag new Python versions. Plan: a project-local Python 3.12 venv. |
-| Node.js | 24.19.0 | OK for the SharkyClips frontend and for yt-dlp's YouTube JS runtime. |
-| ffmpeg / ffprobe | **not on PATH** | Required by both projects. |
-| GPU | NVIDIA RTX 5050 Laptop (8 GB, Blackwell), driver 621.14 | Blackwell needs CUDA 12.8+ builds; older CUDA wheels will fail or fall back to CPU. |
-| RAM / disk | 23 GB / 413 GB free | Enough. |
+**Moving to PC B:** copy the whole `ai-clipper` folder (including `tools\` and `app\models\`),
+then run `setup.ps1` there. It rebuilds `.venv` (a venv stores absolute paths) from the copied
+package cache, and `check-hardware.ps1` shows which hardware profile was picked.
+
+Problems: see [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
+
+## Status (2026-11-18)
+
+| Part | State |
+|---|---|
+| Foundation | SharkyClips v1.2.50 (MIT), see [docs/PROVENANCE.md](docs/PROVENANCE.md) |
+| Import | Local files; links (YouTube, Twitch, Kick, ...) with preview, quality choice, cancel, duplicate check |
+| Highlight funnel | Stage A signals incl. new motion/scene signal; Stage B candidates; Stage C vision check (qwen3-vl:4b); Stage D phases + two scores |
+| Offline-first | Uploads, posting and online updates are blocked in code (`outbound.py`) and hidden in the UI |
+| Hardware profiles | PC A (RTX 5050) verified; PC B (RTX 5060) profile written, **not yet verified on that PC** |
+| UI | SharkyClips' UI, English by default. The new scores and vision verdicts are **not shown yet** |
+| Real-recording accuracy | **Not measured yet** (needs a real recording + your own list of highlights) |
+
+Measured numbers are in [docs/RESULTS.md](docs/RESULTS.md); nothing is claimed there that was not measured.
 
 ## Licensing
 
