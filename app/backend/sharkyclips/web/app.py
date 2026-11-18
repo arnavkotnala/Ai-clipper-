@@ -920,6 +920,12 @@ def rebuild_job(saved: dict, attempt: int | None = None) -> Job | None:
 # ========================================================================= API
 
 
+def _publishing_enabled() -> bool:
+    from ..outbound import publishing_enabled
+
+    return publishing_enabled()
+
+
 @app.get("/api/meta")
 def api_meta(request: Request) -> dict:
     return {
@@ -933,6 +939,7 @@ def api_meta(request: Request) -> dict:
                      for e in ENCODERS.values()],
         "reason_codes": REASON_CODES,
         "is_local": _is_local(request),
+        "publishing": _publishing_enabled(),  # ai-clipper: offline-first
         "lan_url": app.state.lan_url,
         "workspace": str(config.workspace_dir()) if _is_local(request) else None,
         "llm": {"available": llm_available()},

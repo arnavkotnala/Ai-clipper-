@@ -78,6 +78,11 @@ def status(fetch: bool = True, root: Path = REPO_ROOT) -> dict:
     """Current vs. latest version. Never raises: problems come back as `reason`."""
     out: dict = {"current": __version__, "latest": None, "available": False, "behind": 0,
                  "changes": [], "supported": False, "reason": None, "releases_url": RELEASES_URL}
+    from . import outbound
+
+    if not outbound.publishing_enabled():  # ai-clipper: no update checks against upstream SharkyClips
+        out["reason"] = "disabled"
+        return out
     if shutil.which("git") is None:
         out["reason"] = "no_git"
         return out
@@ -120,6 +125,9 @@ def status(fetch: bool = True, root: Path = REPO_ROOT) -> dict:
 def apply(on_stage: Callable[[str], None] | None = None, root: Path = REPO_ROOT,
           python: str = sys.executable) -> dict:
     """git pull, then reinstall Python packages if the requirements changed."""
+    from . import outbound
+
+    outbound.require("Online updates (git pull + pip install)")  # ai-clipper: update by copying the folder
     stage = on_stage or (lambda _s: None)
     before_rev = git("rev-parse", "HEAD", root=root)
     before_req = _requirements_hash(root)

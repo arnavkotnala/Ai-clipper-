@@ -1,3 +1,4 @@
+import { whenPublishing } from "../meta";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -59,7 +60,7 @@ const LANG_CODES = ["en", "tr", "de", "hu", "ru", "ar", "zh"];
 
 const CHECKLIST = ["site", "domain", "consent", "scopes", "video", "oauth", "audit"] as const;
 
-export function LockBanner({ lock, compact = false }: { lock: YoutubeLock | undefined; compact?: boolean }) {
+function LockBannerImpl({ lock, compact = false }: { lock: YoutubeLock | undefined; compact?: boolean }) {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
   if (!lock || lock.state === "unlocked") return null;
@@ -815,7 +816,7 @@ export function ScheduleDialog({ rows, settings, onClose, onDone }: { rows: Libr
 
 // ------------------------------------------------------------------ Settings: publishing
 
-export function PublishingCard() {
+function PublishingCardImpl() {
   const { t, num } = useI18n();
   const toast = useToast();
   const [s, setS] = useState<PublishSettings | null>(null);
@@ -952,3 +953,7 @@ export function RescheduleDialog({ row, onClose, onDone }: { row: LibraryRow; on
     </Modal>
   );
 }
+
+export const PublishingCard = whenPublishing(PublishingCardImpl); // ai-clipper: hidden while publishing is off
+
+export const LockBanner = whenPublishing(LockBannerImpl); // ai-clipper: hidden while publishing is off

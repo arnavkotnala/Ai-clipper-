@@ -3,6 +3,7 @@
 // something does). Pro dialog + Library: the full preview per platform (phone frame), editable
 // texts with the platform limits, problems with one-tap fixes, TikTok's required post screen,
 // "Post now" or "Plan". Status badges per platform with Retry for the one that failed.
+import { whenPublishing } from "../meta";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ApiError, urls } from "../api";
 import { fmtTime } from "../format";
@@ -192,7 +193,7 @@ export function PostBadge({ s, pid, cid, onChanged }: { s: PostState; pid: strin
   );
 }
 
-export function PostBadges({ posts, pid, cid, onChanged, all }: { posts: ClipPosts | null | undefined; pid: string; cid: string; onChanged?: () => void; all?: boolean }) {
+function PostBadgesImpl({ posts, pid, cid, onChanged, all }: { posts: ClipPosts | null | undefined; pid: string; cid: string; onChanged?: () => void; all?: boolean }) {
   const { t, num } = useI18n();
   if (!posts) return null;
   const shown = ORDER.filter((p) => all || posts[p].status !== "idle");
@@ -843,7 +844,7 @@ export function PublishDialog({
 
 // ------------------------------------------------------------------ the Easy card's one-tap block
 
-export function PublishBlock({
+function PublishBlockImpl({
   pid,
   cid,
   title,
@@ -943,7 +944,7 @@ export function PublishBlock({
 }
 
 /** Pro dialog / Library: a "Publish everywhere" button + this clip's badges. */
-export function PublishEverywhereButton({
+function PublishEverywhereButtonImpl({
   pid,
   cid,
   title,
@@ -983,3 +984,9 @@ export function PublishEverywhereButton({
     </>
   );
 }
+
+export const PublishBlock = whenPublishing(PublishBlockImpl); // ai-clipper: hidden while publishing is off
+
+export const PostBadges = whenPublishing(PostBadgesImpl); // ai-clipper: hidden while publishing is off
+
+export const PublishEverywhereButton = whenPublishing(PublishEverywhereButtonImpl); // ai-clipper: hidden while publishing is off

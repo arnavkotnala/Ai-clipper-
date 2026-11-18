@@ -12,7 +12,7 @@ import { Onboarding } from "./components/Welcome";
 import { jobLabel } from "./components/ui";
 import { UI_LANGUAGES, useI18n } from "./i18n";
 import { isActive, useJobs } from "./jobs";
-import { chooseLanguage } from "./meta";
+import { chooseLanguage, usePublishing } from "./meta";
 import Library from "./pages/Library";
 import ProjectPage from "./pages/Project";
 import EasyHome from "./pages/EasyHome";
@@ -43,6 +43,7 @@ function EasyTopBar() {
   const { t, lang, setLang } = useI18n();
   const [theme, , toggle] = useTheme();
   const { connected } = useJobs();
+  const publishing = usePublishing();
   return (
     <header className="topbar ez-topbar">
       <a className="brand" href={href.library} aria-label="SharkyClips">
@@ -58,9 +59,11 @@ function EasyTopBar() {
         <a href={href.publish()} aria-current={route.name === "publish" ? "page" : undefined}>
           {t("easy.nav_library")}
         </a>
-        <a href={href.pubqueue} aria-current={route.name === "pubqueue" ? "page" : undefined}>
-          {t("nav.pubqueue")}
-        </a>
+        {publishing && (
+          <a href={href.pubqueue} aria-current={route.name === "pubqueue" ? "page" : undefined}>
+            {t("nav.pubqueue")}
+          </a>
+        )}
         <a href={href.settings} aria-current={route.name === "settings" || route.name === "trash" ? "page" : undefined}>
           {t("nav.settings")}
         </a>
@@ -105,6 +108,7 @@ function TopBar() {
   const { t, lang, setLang, num } = useI18n();
   const [theme, , toggle] = useTheme();
   const { jobs, connected } = useJobs();
+  const publishing = usePublishing();
   const active = jobs.filter(isActive);
   const running = active.find((j) => j.status === "running") ?? active[0];
 
@@ -126,16 +130,20 @@ function TopBar() {
         <a href={href.publish()} aria-current={route.name === "publish" ? "page" : undefined}>
           {t("nav.publish")}
         </a>
-        <a href={href.pubqueue} aria-current={route.name === "pubqueue" ? "page" : undefined}>
-          {t("nav.pubqueue")}
-        </a>
+        {publishing && (
+          <a href={href.pubqueue} aria-current={route.name === "pubqueue" ? "page" : undefined}>
+            {t("nav.pubqueue")}
+          </a>
+        )}
         <a href={href.queue} aria-current={route.name === "queue" ? "page" : undefined}>
           {t("nav.queue")}
           {active.length > 0 && <span className="nav-count mono">{active.length}</span>}
         </a>
-        <a href={href.stats} aria-current={route.name === "stats" ? "page" : undefined}>
-          {t("nav.stats")}
-        </a>
+        {publishing && (
+          <a href={href.stats} aria-current={route.name === "stats" ? "page" : undefined}>
+            {t("nav.stats")}
+          </a>
+        )}
         <a href={href.studio()} aria-current={route.name === "studio" ? "page" : undefined}>
           {t("nav.studio")}
         </a>
@@ -230,6 +238,7 @@ export default function App() {
   const { state, set } = useAppState();
   const { mode, settings: ui, update: updateUi } = useUiMode();
   const easy = mode === "easy";
+  const publishing = usePublishing();
   const [splashDone, setSplashDone] = useState(false);
   const [onboarded, setOnboarded] = useState(false);
   const [manualWhatsNew, setManualWhatsNew] = useState(false);
@@ -259,8 +268,8 @@ export default function App() {
       {easy ? <EasyTopBar /> : <TopBar />}
       <StaleServerBar />
       <DevBanner />
-      <YoutubeSignedOutBanner />
-      <IgManualBar />
+      {publishing && <YoutubeSignedOutBanner />}
+      {publishing && <IgManualBar />}
       <ShutdownBanner />
       <div className="page-fx" key={mode + route.name + ("id" in route ? `:${route.id}` : "")}>
         <Suspense fallback={null}>
@@ -272,14 +281,14 @@ export default function App() {
         {route.name === "game" && <GameDebug key={route.id} id={route.id} />}
         {route.name === "stories" && <Stories key={route.id} id={route.id} />}
         {route.name === "queue" && <Queue />}
-        {route.name === "stats" && <Stats />}
+        {route.name === "stats" && publishing && <Stats />}
         {route.name === "publish" && (easy ? <EasyLibrary /> : <ClipLibrary view={route.view} />)}
-        {route.name === "pubqueue" && <PublishQueue />}
+        {route.name === "pubqueue" && publishing && <PublishQueue />}
         {route.name === "trash" && <Trash />}
         </Suspense>
       </div>
       <Footer onWhatsNew={() => setManualWhatsNew(true)} />
-      <HandoffHost />
+      {publishing && <HandoffHost />}
       {(autoWhatsNew || manualWhatsNew) && state && (
         <WhatsNew version={state.whats_new ?? state.version} onClose={closeWhatsNew} />
       )}

@@ -98,14 +98,12 @@ def test_installed_wins_over_a_web_block_and_bad_shapes_explain():
             youtube.check_client_text(bad)
 
 
-def test_shipped_built_in_client_is_a_valid_desktop_client(monkeypatch):
-    """backend/sharkyclips/google_client.json: Easy mode's "Connect with Google"."""
+def test_no_built_in_client_is_shipped(monkeypatch):
+    """ai-clipper: the upstream author's google_client.json is NOT shipped (no publishing);
+    without it "Connect with Google" has no client to offer. (Upstream checked the file was valid.)"""
     monkeypatch.delenv("SHARKYCLIPS_SHARED_CLIENT")
     info = youtube.shared_info()
-    assert info["available"], "google_client.json has no client"
-    assert info["client"]["client_id"].endswith(".apps.googleusercontent.com")
-    assert info["client"]["client_secret"].startswith("GOCSPX-")
-    assert info["verification"] == "production" and info["user_cap"] == 100  # published, not verified
+    assert not info["available"]
 
 
 # ------------------------------------------------------------------ old server after an update

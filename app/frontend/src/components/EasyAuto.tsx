@@ -1,3 +1,4 @@
+import { whenPublishing } from "../meta";
 import { useCallback, useEffect, useState } from "react";
 import { ApiError, easyApi, type AutopilotView, type EasyHealth, type WeeklyDigest } from "../api";
 import { useI18n } from "../i18n";
@@ -9,7 +10,7 @@ import { Modal, Toggle } from "./ui";
 import { ConnectPrompt } from "./YoutubeConnect";
 
 /** 1.2.34: the YouTube connection at a glance: green / amber / red, one tap to fix. */
-export function ConnectionPill() {
+function ConnectionPillImpl() {
   const { t, num } = useI18n();
   const [h, setH] = useState<EasyHealth | null>(null);
   const [open, setOpen] = useState(false);
@@ -282,3 +283,5 @@ export function WeeklyDigestCard() {
     </section>
   );
 }
+
+export const ConnectionPill = whenPublishing(ConnectionPillImpl); // ai-clipper: hidden while publishing is off

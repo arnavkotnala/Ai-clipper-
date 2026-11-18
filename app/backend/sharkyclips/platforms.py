@@ -104,6 +104,9 @@ def _ig_upload_url(tok: dict, container: str) -> str:
 
 
 def _http():
+    from . import outbound
+
+    outbound.require("TikTok / Instagram / Facebook posting")  # ai-clipper: offline-first
     import requests
 
     return requests

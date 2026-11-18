@@ -41,7 +41,7 @@ import type { PreviewFx } from "../previewMath";
 import { fmtBytes, fmtCompact, fmtTime, sourceLabel } from "../format";
 import { UI_LANGUAGES, useI18n } from "../i18n";
 import { isActive, useJobs } from "../jobs";
-import { useMeta } from "../meta";
+import { useMeta, usePublishing } from "../meta";
 import { CountUp } from "../motion";
 import { href } from "../router";
 import { useToast } from "../toast";
@@ -311,6 +311,7 @@ function PerformanceForm({ projectId, clip, onSaved }: { projectId: string; clip
 // ------------------------------------------------------------------ page
 
 export default function ProjectPage({ id }: { id: string }) {
+  const publishing = usePublishing();
   const { t, num, relTime } = useI18n();
   const meta = useMeta();
   const chatInput = useRef<HTMLInputElement>(null);
@@ -1639,14 +1640,18 @@ export default function ProjectPage({ id }: { id: string }) {
                             <Icon name="download" />
                             {t("export.short")}
                           </button>
-                          <button className="btn btn-sm btn-ghost" onClick={() => setPublishFor(c.id)} title={t("pub.publish_hint")}>
-                            <Icon name="calendar" />
-                            {t("pub.publish_btn")}
-                          </button>
-                          <button className="btn btn-sm btn-ghost" onClick={() => setUploadFor({ cid: c.id })}>
-                            <Icon name="upload" />
-                            YouTube
-                          </button>
+                          {publishing && (
+                            <>
+                              <button className="btn btn-sm btn-ghost" onClick={() => setPublishFor(c.id)} title={t("pub.publish_hint")}>
+                                <Icon name="calendar" />
+                                {t("pub.publish_btn")}
+                              </button>
+                              <button className="btn btn-sm btn-ghost" onClick={() => setUploadFor({ cid: c.id })}>
+                                <Icon name="upload" />
+                                YouTube
+                              </button>
+                            </>
+                          )}
                           {hookTests?.clips[c.id] ? (
                             <button className="btn btn-sm btn-ghost" onClick={() => setHookFor(c.id)} title={t("ab.open")}>
                               <Icon name="split" />

@@ -119,6 +119,9 @@ def _write(name: str, data: dict) -> None:
 
 
 def _http() -> Any:  # the `requests` module (tests swap in a fake)
+    from . import outbound
+
+    outbound.require("YouTube sign-in, upload and statistics")  # ai-clipper: offline-first
     import requests
 
     return requests

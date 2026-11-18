@@ -1,3 +1,4 @@
+import { whenPublishing } from "../meta";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   api,
@@ -704,7 +705,7 @@ export function UploadDialog({
   );
 }
 
-export function UploadsLine({ uploads }: { uploads: YoutubeUpload[] }) {
+function UploadsLineImpl({ uploads }: { uploads: YoutubeUpload[] }) {
   const { t, num } = useI18n();
   if (!uploads.length) return null;
   return (
@@ -725,7 +726,7 @@ export function UploadsLine({ uploads }: { uploads: YoutubeUpload[] }) {
 // The project site (docs/site, published with .github/workflows/pages.yml).
 const PRIVACY_URL = "https://utkualsir.github.io/sharkyclips-site/privacy.html";
 
-export function YoutubeCard({ isLocal, quota, onQuota }: { isLocal: boolean; quota: number; onQuota: (n: number) => void }) {
+function YoutubeCardImpl({ isLocal, quota, onQuota }: { isLocal: boolean; quota: number; onQuota: (n: number) => void }) {
   const { t, num, relTime } = useI18n();
   const toast = useToast();
   const [yt, setYt] = useState<YoutubeStatus | null>(null);
@@ -884,3 +885,7 @@ export function YoutubeCard({ isLocal, quota, onQuota }: { isLocal: boolean; quo
     </section>
   );
 }
+
+export const YoutubeCard = whenPublishing(YoutubeCardImpl); // ai-clipper: hidden while publishing is off
+
+export const UploadsLine = whenPublishing(UploadsLineImpl); // ai-clipper: hidden while publishing is off

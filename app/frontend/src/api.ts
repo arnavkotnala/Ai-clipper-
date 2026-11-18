@@ -26,6 +26,8 @@ export interface Meta {
   lan_url: string | null;
   workspace: string | null;
   llm: { available: boolean };
+  /** ai-clipper: false = uploads/posting/online updates are off and their UI is hidden */
+  publishing?: boolean;
 }
 
 export interface Job {

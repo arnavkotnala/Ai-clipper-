@@ -31,6 +31,16 @@ export function MetaProvider({ children }: { children: ReactNode }) {
 
 export const useMeta = () => useContext(Ctx);
 
+/** ai-clipper: offline-first, so publishing UI shows only if the server explicitly allows it. */
+export const usePublishing = () => !!useContext(Ctx)?.publishing;
+
+/** ai-clipper: render a publishing component only when publishing is enabled. */
+export function whenPublishing<P extends object>(C: (props: P) => JSX.Element | null) {
+  return function PublishingGate(props: P) {
+    return usePublishing() ? <C {...props} /> : null;
+  };
+}
+
 export function chooseLanguage(code: string, setLang: (c: string) => void) {
   setLang(code);
   try {

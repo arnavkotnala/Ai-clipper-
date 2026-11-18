@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useId, useState } from "react";
 import { ApiError, phoneApi, type PhoneStatus, type PhoneView } from "../api";
 import { useI18n } from "../i18n";
-import { useMeta } from "../meta";
+import { useMeta, whenPublishing } from "../meta";
 import { useToast } from "../toast";
 import { Icon } from "./Icons";
 import { LanPinBox } from "./LanAccess";
@@ -12,7 +12,7 @@ const BOTFATHER = "https://t.me/BotFather";
 // =========================================================================== phone (Telegram)
 
 /** Guided Telegram bot setup: 1) create a bot, 2) paste its token, 3) tap Start in the bot. */
-export function PhoneConnect({ status, onStatus, compact }: { status: PhoneStatus | null; onStatus: (s: PhoneStatus) => void; compact?: boolean }) {
+function PhoneConnectImpl({ status, onStatus, compact }: { status: PhoneStatus | null; onStatus: (s: PhoneStatus) => void; compact?: boolean }) {
   const { t } = useI18n();
   const toast = useToast();
   const meta = useMeta();
@@ -124,7 +124,7 @@ export function PhoneConnect({ status, onStatus, compact }: { status: PhoneStatu
 }
 
 /** Pro settings card: Telegram + the approval page on the Wi-Fi (+ Tailscale for away from home). */
-export function PhoneCard() {
+function PhoneCardImpl() {
   const { t } = useI18n();
   const meta = useMeta();
   const toast = useToast();
@@ -219,3 +219,7 @@ export function PhoneCard() {
     </section>
   );
 }
+
+export const PhoneCard = whenPublishing(PhoneCardImpl); // ai-clipper: hidden while publishing is off
+
+export const PhoneConnect = whenPublishing(PhoneConnectImpl); // ai-clipper: hidden while publishing is off

@@ -9,7 +9,7 @@ import { Toggle } from "../components/ui";
 import { AutopilotCard } from "../components/EasyAuto";
 import { AccountsGrid } from "../components/Accounts";
 import { UI_LANGUAGES, useI18n } from "../i18n";
-import { chooseLanguage, useMeta } from "../meta";
+import { chooseLanguage, useMeta, usePublishing } from "../meta";
 import { useTheme } from "../theme";
 import { useUiMode } from "../uimode";
 import { TrashCard } from "../components/Trash";
@@ -18,6 +18,7 @@ import { TrashCard } from "../components/Trash";
 export default function EasySettings() {
   const { t, lang, setLang } = useI18n();
   const meta = useMeta();
+  const publishing = usePublishing();
   const [theme, , toggleTheme] = useTheme();
   const { settings, update, setMode } = useUiMode();
   const [phone, setPhone] = useState<PhoneStatus | null>(null);
@@ -57,6 +58,7 @@ export default function EasySettings() {
         </a>
       </div>
 
+      {publishing && (<>
       <section className="card ez-set-card ez-set-accounts" id="accounts" aria-labelledby="ez-set-acc">
         <h2 id="ez-set-acc">{t("acc.title")}</h2>
         <p className="muted" style={{ marginTop: 0 }}>{t("acc.lede")}</p>
@@ -88,6 +90,7 @@ export default function EasySettings() {
           </div>
         )}
       </section>
+      </>)}
 
       <AutopilotCard />
 
@@ -179,11 +182,11 @@ export default function EasySettings() {
 
       <TrashCard easy />
 
-      <section className="card ez-set-card" aria-labelledby="ez-set-phone">
+      {publishing && <section className="card ez-set-card" aria-labelledby="ez-set-phone">
         <h2 id="ez-set-phone">{t("easy.set_phone")}</h2>
         <p className="muted" style={{ marginTop: 0 }}>{t("easy.phone_body")}</p>
         <PhoneConnect status={phone} onStatus={onPhone} compact />
-      </section>
+      </section>}
 
       <section className="card ez-set-card" aria-labelledby="ez-set-look">
         <h2 id="ez-set-look">{t("easy.set_look")}</h2>

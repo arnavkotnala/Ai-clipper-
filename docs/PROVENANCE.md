@@ -34,6 +34,16 @@ Modified for ai-clipper:
 - `web/app.py`: `verify` job in the chain (highlights → verify → analyze), `/api/projects/{id}/verify`.
 - `cli.py`: imports `aiclipper_env`; `verify` command; confidence/engagement columns.
 - Six model-path call sites now use `config.models_dir()`.
+- `ingest.py`: `probe()` link preview (qualities, sizes, duplicate check), chosen download quality,
+  cancel that stops the transfer and removes partial files.
+- `languages.py`, `frontend/src/i18n/index.tsx`: English default (upstream: Turkish).
+- Publishing (YouTube API/OAuth, TikTok API + browser, Instagram/Facebook, Telegram) and the
+  git-pull updater: code kept, but every network entry point calls `outbound.require()`, which
+  refuses unless `AICLIPPER_PUBLISHING=1` (set only by the test suite). The upstream author's
+  `google_client.json` (their Google OAuth client) was removed from the app; it remains in the
+  history of the unmodified import commit `3e639e7`, as it does in the public upstream repo.
+- Frontend: the publishing screens, badges and buttons render only when the server reports
+  `publishing: true` (`meta.whenPublishing`).
 
 ### New in ai-clipper (written for this project)
 | File | What |
@@ -43,6 +53,8 @@ Modified for ai-clipper:
 | `app/backend/sharkyclips/scoring.py` | Separate confidence / engagement scores, categories, event phases (Stage D). |
 | `app/backend/sharkyclips/verify.py` | Stage C vision-model verification (Ollama, structured JSON). |
 | `app/backend/sharkyclips/hwprofile.py` + `app/config/profiles/*.json` | Hardware profiles (PC A RTX 5050, PC B RTX 5060, generic, CPU). |
+| `app/backend/sharkyclips/outbound.py` | Offline-first gate for uploads, posting and online updates. |
+| `app/frontend/src/components/LinkPreview.tsx` | Link preview before download (thumbnail, quality, duplicate). |
 | `scripts/bench_vlm.py` | Vision-model benchmark + sanity probes. |
 
 ### Ideas taken from Clippie's design (re-implemented, no code copied)

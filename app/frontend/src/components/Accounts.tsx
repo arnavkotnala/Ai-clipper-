@@ -1,6 +1,7 @@
 // 1.2.36 Settings → Accounts: YouTube, Instagram and TikTok side by side (connect, reconnect,
 // disconnect, who is connected, a status pill, the quota) with a guided setup for your own
 // Meta / TikTok developer app. Also opened inline from the Publish dialog.
+import { whenPublishing } from "../meta";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { api, type YoutubeStatus } from "../api";
 import { useI18n } from "../i18n";
@@ -463,7 +464,7 @@ function YoutubeCard({ a, quota, onChange }: { a: Account; quota: Quota | null |
 }
 
 /** The three cards. */
-export function AccountsGrid({ only }: { only?: Target }) {
+function AccountsGridImpl({ only }: { only?: Target }) {
   const [a, reload] = useAccounts();
   if (!a)
     return (
@@ -484,7 +485,7 @@ export function AccountsGrid({ only }: { only?: Target }) {
 }
 
 /** Settings section "Accounts" (Pro and Easy). */
-export function AccountsSection({ className = "card setting acc-section" }: { className?: string }) {
+function AccountsSectionImpl({ className = "card setting acc-section" }: { className?: string }) {
   const { t } = useI18n();
   return (
     <section className={className} id="accounts" aria-labelledby="acc-title">
@@ -506,3 +507,7 @@ export function ConnectDialog({ p, onClose }: { p: Target; onClose: () => void }
     </Modal>
   );
 }
+
+export const AccountsGrid = whenPublishing(AccountsGridImpl); // ai-clipper: hidden while publishing is off
+
+export const AccountsSection = whenPublishing(AccountsSectionImpl); // ai-clipper: hidden while publishing is off

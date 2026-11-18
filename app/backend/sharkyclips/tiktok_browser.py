@@ -471,6 +471,9 @@ class _Session:
         self.channel = None
 
     def __enter__(self) -> "_Session":
+        from . import outbound
+
+        outbound.require("Automatic TikTok posting")  # ai-clipper: offline-first
         ok, _ = available()
         if not ok:
             raise Blocked("no_browser", "Automatic TikTok posting needs Playwright.",
@@ -789,6 +792,9 @@ def login_start() -> dict:
     """Opens your installed Google Chrome (a plain window, nothing attached) on TikTok's login page
     in the SharkyClips profile; you log in yourself (password manager, QR code, ...). When you close
     that window, SharkyClips checks the login."""
+    from . import outbound
+
+    outbound.require("TikTok login")  # ai-clipper: offline-first
     ok, why = available()
     if not ok:
         raise SharkyClipsError("Automatic TikTok posting needs Playwright.",

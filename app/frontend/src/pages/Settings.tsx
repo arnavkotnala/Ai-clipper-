@@ -6,7 +6,7 @@ import { href } from "../router";
 import { CopyButton, JobLine, Segmented, Toggle } from "../components/ui";
 import { UI_LANGUAGES, useI18n } from "../i18n";
 import { isActive, useJobs } from "../jobs";
-import { chooseLanguage, useMeta } from "../meta";
+import { chooseLanguage, useMeta, whenPublishing } from "../meta";
 import { LanPinBox } from "../components/LanAccess";
 import { AutoClipCard, MarkersCard } from "../components/Automation";
 import { PhoneCard } from "../components/Phone";
@@ -88,7 +88,9 @@ async function reloadWhenBack() {
   }
 }
 
-function UpdatesCard() {
+const UpdatesCard = whenPublishing(UpdatesCardImpl); // ai-clipper: no online updates
+
+function UpdatesCardImpl() {
   const { t } = useI18n();
   const toast = useToast();
   const meta = useMeta();

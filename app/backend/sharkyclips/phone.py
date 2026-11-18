@@ -110,6 +110,9 @@ def _base() -> str:
 
 
 def _http():
+    from . import outbound
+
+    outbound.require("Sending clips to your phone via Telegram")  # ai-clipper: offline-first
     import requests
 
     return requests

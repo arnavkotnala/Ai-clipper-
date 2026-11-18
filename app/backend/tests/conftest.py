@@ -37,6 +37,7 @@ os.environ["SHARKYCLIPS_DOWNLOADS"] = str(_home / "downloads" / "SharkyClips")
 os.environ["SHARKYCLIPS_QUEUE_HOME"] = str(_home / "queue-home")
 os.environ.pop("CLIPFORGE_HOME", None)
 # ai-clipper: never let a shell that ran the launcher point tests at the real data / models.
+os.environ["AICLIPPER_PUBLISHING"] = "1"  # the dormant upstream publishing code keeps its fake-server tests
 os.environ["AICLIPPER_TESTING"] = "1"  # aiclipper_env.apply() becomes a no-op (cli.py imports it)
 for _k in ("SHARKYCLIPS_WORKSPACE", "AICLIPPER_OLLAMA_URL", "AICLIPPER_OLLAMA_EXE", "OLLAMA_MODELS", "HF_HOME"):
     os.environ.pop(_k, None)
