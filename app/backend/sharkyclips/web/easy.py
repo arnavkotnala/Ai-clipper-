@@ -749,8 +749,9 @@ def api_create(body: dict, request: Request) -> dict:
         if not Path(source).expanduser().is_file():
             raise SharkyClipsError(f"File not found: {source}")
     real = mode if mode != "auto" else (config.get("default_mode") or "gaming")
-    title = source if is_url(source) else Path(source).name
-    job = A.submit_import(source, real, language, title, extra={"easy": True, "mode_auto": mode == "auto"})
+    job = A.submit_import(source, real, language, A.import_title(body, source),
+                          extra={"easy": True, "mode_auto": mode == "auto"},
+                          max_height=A.import_max_height(body, source))
     return job.to_dict()
 
 

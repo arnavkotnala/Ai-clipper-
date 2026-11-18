@@ -280,13 +280,14 @@ def submit_proxy(project_id: str) -> Job:
 
 
 def submit_import(source: str, mode: str, language: str, title: str,
-                  cleanup: Path | None = None, extra: dict | None = None) -> Job:
+                  cleanup: Path | None = None, extra: dict | None = None,
+                  max_height: int | None = None) -> Job:
     def run(job: Job):
         from ..ingest import ingest
 
         jobs.update(job, stage="starting", progress=None)
         try:
-            project = ingest(source, mode=mode)
+            project = ingest(source, mode=mode, max_height=max_height)
         finally:
             if cleanup is not None:
                 cleanup.unlink(missing_ok=True)  # the project keeps its own (hard-linked) copy
@@ -306,7 +307,8 @@ def submit_import(source: str, mode: str, language: str, title: str,
             submit_highlights(pid)
 
     return jobs.submit("import", "io", None,
-                       {"source": source, "title": title, "mode": mode, "language": language, **(extra or {})},
+                       {"source": source, "title": title, "mode": mode, "language": language,
+                        **({"max_height": max_height} if max_height else {}), **(extra or {})},
                        run, then, dedupe=False)
 
 
@@ -911,7 +913,7 @@ def rebuild_job(saved: dict, attempt: int | None = None) -> Job | None:
 
         if is_url(p.get("source") or ""):
             return submit_import(p["source"], p.get("mode") or "gaming", p.get("language") or "auto",
-                                 p.get("title") or p["source"])
+                                 p.get("title") or p["source"], max_height=p.get("max_height"))
     return None
 
 
@@ -1531,8 +1533,41 @@ def api_create(body: dict, request: Request) -> dict:
                                    "Upload the file instead.")
         if not Path(source).expanduser().is_file():
             raise SharkyClipsError(f"File not found: {source}")
-    title = source if is_url(source) else Path(source).name
-    return submit_import(source, mode, language, title).to_dict()
+    title = import_title(body, source)
+    return submit_import(source, mode, language, title, max_height=import_max_height(body, source)).to_dict()
+
+
+def import_title(body: dict, source: str) -> str:
+    """ai-clipper: the previewed video title (else the link / file name) as the job's label."""
+    from ..ingest import is_url
+
+    return str(body.get("title") or "").strip()[:200] or (source if is_url(source) else Path(source).name)
+
+
+def import_max_height(body: dict, source: str) -> int | None:
+    """ai-clipper: the download quality picked in the link preview (None = the setting)."""
+    from ..ingest import is_url
+
+    if not is_url(source) or body.get("max_height") is None:
+        return None
+    try:
+        h = int(body["max_height"])
+    except (TypeError, ValueError):
+        raise SharkyClipsError("Invalid video quality.") from None
+    if not 144 <= h <= 4320:
+        raise SharkyClipsError("Invalid video quality.")
+    return h
+
+
+@app.post("/api/probe")
+def api_probe(body: dict) -> dict:
+    """ai-clipper: preview a link before downloading (title, thumbnail, qualities, duplicate)."""
+    from ..ingest import probe
+
+    url = str(body.get("url") or "").strip()
+    if not url:
+        raise SharkyClipsError("Paste a video link.")
+    return probe(url)
 
 
 @app.put("/api/uploads")

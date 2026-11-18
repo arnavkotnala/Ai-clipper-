@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api, ApiError, uploadFile, urls, type Job, type Mode, type ProjectSummary } from "../api";
+import { LinkPreviewPanel, useLinkPreview } from "../components/LinkPreview";
 import { Icon } from "../components/Icons";
 import { DeleteDialog, useUndoToast } from "../components/Trash";
 import { fmtBytes as fmtSize } from "../format";
@@ -130,6 +131,7 @@ export function NewProjectModal({ onClose }: { onClose: () => void }) {
   const [drag, setDrag] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
   const abortRef = useRef<() => void>();
+  const link = useLinkPreview(url, tab === "link"); // ai-clipper: preview before downloading
 
   useEffect(() => {
     api.settings().then((s) => setMode(s.default_mode)).catch(() => {});
@@ -150,7 +152,11 @@ export function NewProjectModal({ onClose }: { onClose: () => void }) {
       if (tab === "link") {
         const v = url.trim();
         const isUrl = /^https?:\/\//i.test(v);
-        await api.create(isUrl ? { url: v, mode, language } : { path: v, mode, language });
+        await api.create(
+          isUrl
+            ? { url: v, mode, language, ...link.body }
+            : { path: v, mode, language },
+        );
       } else if (file) {
         const up = uploadFile(file, mode, language, setUpload);
         abortRef.current = up.abort;
@@ -167,7 +173,8 @@ export function NewProjectModal({ onClose }: { onClose: () => void }) {
     }
   };
 
-  const canSubmit = !busy && (tab === "link" ? url.trim().length > 3 : !!file);
+  const canSubmit =
+    !busy && (tab === "link" ? url.trim().length > 3 && link.ready : !!file);
   const modes: Mode[] = ["gaming", "study", "music"];
 
   return (
@@ -214,6 +221,7 @@ export function NewProjectModal({ onClose }: { onClose: () => void }) {
             }}
           />
           <span className="field-hint">{t("new.url_hint")}</span>
+          <LinkPreviewPanel state={link} onOpenExisting={onClose} />
         </label>
       ) : (
         <div

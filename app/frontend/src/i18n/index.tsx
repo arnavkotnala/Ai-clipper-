@@ -31,7 +31,7 @@ export const UI_LANGUAGES = [
   { code: "zh", name: "中文" },
 ];
 export const RTL = new Set(["ar"]);
-const DEFAULT = "tr";
+const DEFAULT = "en"; // ai-clipper: upstream default was "tr"
 
 type Vars = Record<string, string | number>;
 export type T = (key: string, vars?: Vars) => string;

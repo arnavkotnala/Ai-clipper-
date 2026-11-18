@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ConnectionPill } from "../components/EasyAuto";
-import { ApiError, easyApi, uploadEasyFile, urls, type EasyProjectRow, type Mode } from "../api";
+import { api, ApiError, easyApi, uploadEasyFile, urls, type EasyProjectRow, type Mode } from "../api";
+import { LinkPreviewPanel, useLinkPreview } from "../components/LinkPreview";
 import { EasyProgress, ModeChip } from "../components/Easy";
 import { Icon } from "../components/Icons";
 import { DeleteDialog, useUndoToast } from "../components/Trash";
@@ -47,6 +48,7 @@ export default function EasyHome() {
   const undoDelete = useUndoToast();
   const input = useRef<HTMLInputElement>(null);
   const abortRef = useRef<() => void>();
+  const preview = useLinkPreview(link, !file); // ai-clipper: preview before downloading
 
   const load = useCallback(() => {
     easyApi.projects().then(setRecent).catch(() => setRecent([]));
@@ -117,7 +119,7 @@ export default function EasyHome() {
         j = await up.promise;
       } else {
         const v = link.trim();
-        j = await easyApi.create(/^https?:\/\//i.test(v) ? { url: v, mode, language: "auto" } : { path: v, mode, language: "auto" });
+        j = await easyApi.create(/^https?:\/\//i.test(v) ? { url: v, mode, language: "auto", ...preview.body } : { path: v, mode, language: "auto" });
       }
       writePending(j.id);
       setPending(j.id);
@@ -132,7 +134,7 @@ export default function EasyHome() {
     }
   };
 
-  const can = !busy && !pending && (!!file || link.trim().length > 3);
+  const can = !busy && !pending && (!!file || (link.trim().length > 3 && preview.ready));
   const working = !!pending;
 
   return (
@@ -155,6 +157,11 @@ export default function EasyHome() {
             ]}
             eta={null}
           />
+          {job && (job.status === "queued" || job.status === "running") && (
+            <button type="button" className="btn" onClick={() => api.cancelJob(job.id).catch(() => {})}>
+              <Icon name="x" /> {t("common.cancel")}
+            </button>
+          )}
         </div>
       ) : (
         <form
@@ -217,6 +224,7 @@ export default function EasyHome() {
               </>
             )}
             <input ref={input} type="file" accept="video/*,.mkv,.flv,.ts" hidden onChange={(e) => pick(e.target.files?.[0])} />
+            {!file && <LinkPreviewPanel state={preview} />}
             {upload != null && (
               <div className="ez-upload-bar">
                 <ProgressBar value={upload} label={t("easy.sending")} />

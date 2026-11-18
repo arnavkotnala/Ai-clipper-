@@ -33,8 +33,8 @@ _ALL = [
 
 LANGUAGES: dict[str, Language] = {lang.code: lang for lang in _ALL}
 
-DEFAULT_UI_LANGUAGE = "tr"
-DEFAULT_OUTPUT_LANGUAGE = "tr"
+DEFAULT_UI_LANGUAGE = "en"  # ai-clipper: upstream default was "tr"
+DEFAULT_OUTPUT_LANGUAGE = "en"  # ai-clipper: upstream default was "tr"
 
 
 def codes() -> list[str]:

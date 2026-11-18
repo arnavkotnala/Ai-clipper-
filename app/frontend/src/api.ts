@@ -1395,6 +1395,23 @@ export interface GovernorView {
   history?: ResourceSample[];
 }
 
+/** ai-clipper: a link's details before downloading (POST /api/probe) */
+export interface LinkPreview {
+  url: string;
+  webpage_url: string;
+  extractor: string | null;
+  video_id: string | null;
+  title: string;
+  uploader: string | null;
+  duration: number | null;
+  upload_date: string | null;
+  thumbnail: string | null;
+  was_live: boolean;
+  qualities: { height: number; fps: number | null; size_bytes: number | null }[];
+  default_height: number;
+  existing_project: string | null;
+}
+
 export class ApiError extends Error {
   hint: string | null;
   status: number;
@@ -1557,8 +1574,9 @@ export const api = {
   hype: (id: string) => req<HypeCurve>("GET", `${P(id)}/hype`),
   words: (id: string, start: number, end: number) =>
     req<Word[]>("GET", `${P(id)}/words?start=${start}&end=${end}`),
-  create: (body: { url?: string; path?: string; mode: Mode; language: string }) =>
+  create: (body: { url?: string; path?: string; mode: Mode; language: string; max_height?: number; title?: string }) =>
     req<Job>("POST", "/api/projects", body),
+  probe: (url: string) => req<LinkPreview>("POST", "/api/probe", { url }),
   transcribe: (id: string, language = "auto", force = false) =>
     req<Job>("POST", `${P(id)}/transcribe`, { language, force }),
   highlights: (id: string, mode?: Mode, force = false) =>
@@ -2231,7 +2249,7 @@ const EP = (pid: string) => `/api/easy/projects/${encodeURIComponent(pid)}`;
 export const easyApi = {
   settings: () => req<EasySettings>("GET", "/api/easy/settings"),
   saveSettings: (s: Partial<Omit<EasySettings, "downloads">>) => req<EasySettings>("PUT", "/api/easy/settings", s),
-  create: (body: { url?: string; path?: string; mode: Mode | "auto"; language: string }) =>
+  create: (body: { url?: string; path?: string; mode: Mode | "auto"; language: string; max_height?: number; title?: string }) =>
     req<Job>("POST", "/api/easy/projects", body),
   projects: () => req<EasyProjectRow[]>("GET", "/api/easy/projects"),
   view: (pid: string) => req<EasyView>("GET", EP(pid)),

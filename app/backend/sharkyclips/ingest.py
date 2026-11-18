@@ -141,11 +141,10 @@ def _download_error(exc: Exception, url: str) -> SharkyClipsError:
     return SharkyClipsError(f"Download failed: {text[:500]}", hint)
 
 
-def _ingest_url(url: str) -> tuple[Project, dict]:
-    console.print(f"Looking up [cyan]{url}[/] ...")
+def _lookup(url: str) -> tuple[dict, str]:
+    """yt-dlp metadata for one video (no download). Returns (info, the URL that was looked up)."""
     lookup = kick.canonical(url) if kick.is_kick(url) else url  # channel links get a clear message
     yt_dlp = require_module("yt_dlp", "yt-dlp[default]")
-    max_height = int(config.get("download_max_height") or 1080)
     try:
         with yt_dlp.YoutubeDL({"quiet": True, "noplaylist": True, "skip_download": True,
                                "socket_timeout": 30, "retries": 5, "logger": _YdlLogger(),
@@ -163,18 +162,110 @@ def _ingest_url(url: str) -> tuple[Project, dict]:
     if info.get("is_live"):
         raise SharkyClipsError("This stream is live right now.",
                                "Wait until the stream ends and use the VOD/replay URL.")
+    return info, lookup
+
+
+def _project_for_info(info: dict, lookup: str) -> Project:
+    title = info.get("title") or info.get("id") or "video"
+    canonical = info.get("webpage_url") or lookup
+    return project_for_id(make_project_id(title, f"url:{info.get('extractor_key')}:{info.get('id') or canonical}"))
+
+
+# ai-clipper: quality steps offered in the import dialog (only those the video actually has)
+QUALITY_STEPS = (360, 480, 720, 1080, 1440, 2160)
+
+
+def _qualities(info: dict) -> list[dict]:
+    """Available video heights with an estimated download size (video + best audio)."""
+    duration = float(info.get("duration") or 0)
+    formats = info.get("formats") or []
+
+    def size(f: dict) -> float | None:
+        s = f.get("filesize") or f.get("filesize_approx")
+        if s:
+            return float(s)
+        if f.get("tbr") and duration:
+            return float(f["tbr"]) * 1000 / 8 * duration
+        return None
+
+    audio = [f for f in formats if f.get("vcodec") == "none" and f.get("acodec") not in (None, "none")]
+    audio_size = max((size(f) or 0 for f in audio), default=0)
+    video = [f for f in formats if f.get("vcodec") not in (None, "none") and f.get("height")]
+    out = []
+    for h in sorted({int(f["height"]) for f in video}):
+        best = max((f for f in video if int(f["height"]) == h), key=lambda f: f.get("tbr") or 0)
+        s = size(best)
+        has_audio = best.get("acodec") not in (None, "none")
+        out.append({"height": h, "fps": best.get("fps"),
+                    "size_bytes": int(s + (0 if has_audio else audio_size)) if s else None})
+    # keep the standard steps plus the highest available (e.g. 1600p), newest first
+    keep = [q for q in out if q["height"] in QUALITY_STEPS or q is out[-1]]
+    return list(reversed(keep))
+
+
+def probe(url: str) -> dict:
+    """ai-clipper: everything the import dialog shows BEFORE downloading: title, channel,
+    duration, thumbnail, available qualities, and whether this video is already a project."""
+    if not is_url(url):
+        raise SharkyClipsError("That isn't a web link.", "Paste a link that starts with https://")
+    info, lookup = _lookup(url.strip())
+    project = _project_for_info(info, lookup)
+    existing = project.id if project.source_path is not None and project.meta_path.is_file() else None
+    qualities = _qualities(info)
+    default = int(config.get("download_max_height") or 1080)
+    return {
+        "url": url.strip(),
+        "webpage_url": info.get("webpage_url") or lookup,
+        "extractor": info.get("extractor_key"),
+        "video_id": info.get("id"),
+        "title": info.get("title") or info.get("id") or "video",
+        "uploader": info.get("uploader") or info.get("channel"),
+        "duration": info.get("duration"),
+        "upload_date": info.get("upload_date"),
+        "thumbnail": info.get("thumbnail"),
+        "was_live": bool(info.get("was_live")),
+        "qualities": qualities,
+        "default_height": max((q["height"] for q in qualities if q["height"] <= default), default=default),
+        "existing_project": existing,
+    }
+
+
+def _clean_partial_download(project: Project) -> None:
+    """After a cancelled/failed download: remove yt-dlp's partial files (and the folder if it
+    holds nothing else), so a cancelled import leaves no half-written video behind."""
+    if project.meta_path.is_file() or not project.dir.is_dir():
+        return
+    for p in project.dir.glob("source*"):
+        if p.is_file():
+            p.unlink(missing_ok=True)
+    try:
+        project.dir.rmdir()  # only succeeds when empty
+    except OSError:
+        pass
+
+
+def _ingest_url(url: str, max_height: int | None = None) -> tuple[Project, dict]:
+    from . import governor
+
+    console.print(f"Looking up [cyan]{url}[/] ...")
+    max_height = int(max_height or config.get("download_max_height") or 1080)
+    info, lookup = _lookup(url)  # refuses channel/playlist/live links before anything loads
+    yt_dlp = require_module("yt_dlp", "yt-dlp[default]")
     title = info.get("title") or info.get("id") or "video"
     canonical = info.get("webpage_url") or lookup
     media = info.get("media_url") or canonical  # the Kick fallback downloads its HLS playlist
-    project = project_for_id(make_project_id(title, f"url:{info.get('extractor_key')}:{info.get('id') or canonical}"))
+    project = _project_for_info(info, lookup)
     project.dir.mkdir(parents=True, exist_ok=True)
 
     if project.source_path is None:
         console.print(f"Downloading [bold]{title}[/] (up to {max_height}p) ...")
+        job = governor.current_job()  # web UI: Cancel must stop the transfer, not only ffmpeg
         with download_progress() as prog:
             task = prog.add_task("Downloading", total=None)
 
             def hook(d: dict) -> None:
+                if job is not None and getattr(job, "cancel_requested", False):
+                    raise yt_dlp.utils.DownloadCancelled("cancelled by the user")
                 if d.get("status") == "downloading":
                     total = d.get("total_bytes") or d.get("total_bytes_estimate")
                     prog.update(task, completed=d.get("downloaded_bytes") or 0, total=total)
@@ -185,7 +276,12 @@ def _ingest_url(url: str) -> tuple[Project, dict]:
             try:
                 with yt_dlp.YoutubeDL(opts) as ydl:
                     ydl.download([media])
-            except Exception as exc:
+            except BaseException as exc:
+                _clean_partial_download(project)
+                if job is not None and getattr(job, "cancel_requested", False):
+                    raise governor.JobCancelled() from exc
+                if not isinstance(exc, Exception):
+                    raise
                 raise _download_error(exc, url) from exc
         if project.source_path is None:
             raise SharkyClipsError("Download finished but no video file was found.",
@@ -202,6 +298,8 @@ def _ingest_url(url: str) -> tuple[Project, dict]:
         "uploader": info.get("uploader") or info.get("channel"),
         "upload_date": info.get("upload_date"),
         "category": next((c for c in info.get("categories") or [] if c), None),  # Kick: the game
+        "thumbnail": info.get("thumbnail"),
+        "max_height": max_height,
         "title": title,
     }
 
@@ -209,10 +307,10 @@ def _ingest_url(url: str) -> tuple[Project, dict]:
 # ----------------------------------------------------------------------- main
 
 
-def ingest(source: str, mode: str = "gaming") -> Project:
+def ingest(source: str, mode: str = "gaming", max_height: int | None = None) -> Project:
     if mode not in MODES:
         raise SharkyClipsError(f"Unknown mode '{mode}'.", f"Use one of: {', '.join(MODES)}")
-    project, src_info = _ingest_url(source) if is_url(source) else _ingest_file(source)
+    project, src_info = _ingest_url(source, max_height) if is_url(source) else _ingest_file(source)
     src_path = project.source_path
     assert src_path is not None
 
